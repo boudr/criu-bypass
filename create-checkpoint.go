@@ -15,9 +15,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"os"
+	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
@@ -25,13 +27,32 @@ import (
 //	1) Container ID to checkpoint
 //	2) Name of the checkpoint
 func main() {
-	containerID := os.Args[1]
-	checkpointName := os.Args[2]
 
 	client, err := client.NewEnvClient()
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	//CreateCheckpoint(ctx context.Context, containerID, checkpointDir string, exit bool)
+	err = client.ContainerStart(context.Background(), "f7787ad1ffe7", types.ContainerStartOptions{})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	time.Sleep(20 * time.Second)
+
+	//Create the checkpoint
+	err = client.CheckpointCreate(context.Background(), "f7787ad1ffe7", types.CheckpointCreateOptions{
+		CheckpointID: "cp1",
+		Exit:         true,
+	})
+	if err != nil {
+		fmt.Println(err)
+		erra := client.ContainerStop(context.Background(), "f7787ad1ffe7", nil)
+		if erra != nil {
+			fmt.Println(erra)
+			return
+		}
+		return
+	}
 }
